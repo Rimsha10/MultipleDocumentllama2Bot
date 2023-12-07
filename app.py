@@ -31,7 +31,8 @@ def initialize_session_state():
 
 def conversation_chat(query, chain, history):
     result = chain({"question": query, "chat_history": history})
-    history.append((query, result["answer"]))
+   # history.append((query, result["answer"]))
+    st.session_state['history'].append((query, result["answer"]))
     return result["answer"]
 
 def display_chat_history(chain):
@@ -49,7 +50,7 @@ def display_chat_history(chain):
 
             st.session_state['past'].append(user_input)
             st.session_state['generated'].append(output)
-
+            #st.session_state['history'].append({st.session_state['past']})
     if st.session_state['generated']:
         with reply_container:
             for i in range(len(st.session_state['generated'])):
@@ -65,9 +66,12 @@ def create_conversational_chain(vector_store):
                         #model_type="llama", config={'max_new_tokens': 500, 'temperature': 0.01})
     llm = Replicate(
         streaming = True,
-        model = "replicate/llama-2-70b-chat:58d078176e02c219e11eb4da5a02a7830a283b14cf8f94537af893ccff5ee781", 
+        model = "meta/llama-2-70b-chat:02e509c789964a7ea8736978a43525956ef40397be9033abf9fd2badfe68c9e3", 
         callbacks=[StreamingStdOutCallbackHandler()],
-        input = {"temperature": 0.01, "max_length" :500,"top_p":1})
+        input = {"temperature": 0.01, "max_length" :500,"top_p":1,"context":st.session_state['history'] ,"system_prompt":"You are an assistant helping users with Dell laptop-related issues based on the provided document. "
+        "When a user asks a problem, you provide a relevant solution IN FORM OF BULLET POINTS. "
+        "If the solution doesn't work, offer more explanation or ask o refer Dell support."
+})
     memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 
     chain = ConversationalRetrievalChain.from_llm(llm=llm, chain_type='stuff',
